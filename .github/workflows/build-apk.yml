@@ -9,6 +9,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
+    env:
+      ANDROID_API: "33"
+      ANDROID_NDK: "25b"
+      ANDROID_BUILD_TOOLS: "33.0.0"
+    
     steps:
     - name: 检出代码
       uses: actions/checkout@v4
@@ -23,19 +28,36 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           git zip unzip openjdk-8-jdk autoconf libtool pkg-config \
-          zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
+          zlib1g-dev libncurses5-dev libncursesw5-dev \
           cmake libffi-dev libssl-dev build-essential \
-          libgtk-3-dev libgstreamer1.0-dev
+          libgtk-3-dev libgstreamer1.0-dev gstreamer1.0-plugins-base \
+          ccache
+        # 尝试安装libtinfo，如果失败则跳过
+        sudo apt-get install -y libtinfo6 || sudo apt-get install -y libtinfo5 || true
           
     - name: 安装Python依赖
       run: |
         python -m pip install --upgrade pip
-        pip install buildozer cython
+        pip install buildozer==1.5.0 cython==0.29.33
         pip install -r requirements.txt
+        
+    - name: 创建buildozer目录
+      run: |
+        mkdir -p ~/.buildozer
+        
+    - name: 设置构建缓存
+      uses: actions/cache@v3
+      with:
+        path: ~/.buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
         
     - name: 构建APK
       run: |
-        buildozer android debug
+        buildozer android debug --verbose
+      timeout-minutes: 60
+      continue-on-error: false
         
     - name: 上传APK文件
       uses: actions/upload-artifact@v4
