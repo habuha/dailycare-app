@@ -7,12 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    
-    env:
-      ANDROID_API: "31"
-      ANDROID_NDK: "25b"
-      ANDROID_BUILD_TOOLS: "31.0.0"
+    runs-on: ubuntu-20.04  # 使用更稳定的Ubuntu版本
     
     steps:
     - name: 检出代码
@@ -21,44 +16,28 @@ jobs:
     - name: 设置Python环境
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.8'
+        
+    - name: 设置Java环境
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
         
     - name: 安装系统依赖
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          git zip unzip openjdk-8-jdk autoconf libtool pkg-config \
+          git zip unzip autoconf libtool pkg-config \
           zlib1g-dev libncurses5-dev libncursesw5-dev \
           cmake libffi-dev libssl-dev build-essential \
-          libgtk-3-dev libgstreamer1.0-dev gstreamer1.0-plugins-base \
           ccache
-        # 尝试安装libtinfo，如果失败则跳过
-        sudo apt-get install -y libtinfo6 || sudo apt-get install -y libtinfo5 || true
           
     - name: 安装Python依赖
       run: |
         python -m pip install --upgrade pip
-        pip install buildozer==1.5.0 cython==0.29.33
+        pip install buildozer==1.4.0 cython==0.29.33
         pip install -r requirements.txt
-        
-    - name: 设置Android SDK
-      run: |
-        # 创建Android配置目录
-        mkdir -p ~/.android
-        echo 'count=0' > ~/.android/repositories.cfg
-        
-        # 设置Android环境变量
-        export ANDROID_HOME=/usr/local/lib/android/sdk
-        export ANDROID_SDK_ROOT=$ANDROID_HOME
-        export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools
-        
-        # 接受所有许可协议
-        echo "y" | sudo $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
-        echo "y" | sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        
-        # 显示Android SDK信息
-        echo "ANDROID_HOME: $ANDROID_HOME"
-        ls -la $ANDROID_HOME/ || true
         
     - name: 创建buildozer目录
       run: |
@@ -72,22 +51,36 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildozer-
         
+    - name: 设置Android SDK许可协议
+      run: |
+        mkdir -p ~/.android
+        echo 'count=0' > ~/.android/repositories.cfg
+        # 预先接受所有许可协议
+        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ~/.android/licenses/android-sdk-license
+        echo "84831b9409646a918e30573bab4c9c91346d8abd" >> ~/.android/licenses/android-sdk-license
+        echo "d975f751698a77b662f1254ddbeed3901e976f5a" >> ~/.android/licenses/android-sdk-license
+        
     - name: 构建APK
       run: |
+        # 设置环境变量
+        export JAVA_HOME=$JAVA_HOME_11_X64
+        export ANDROID_API_LEVEL=31
+        export ANDROID_NDK_API_LEVEL=21
+        
+        # 开始构建
         buildozer android debug --verbose
-      timeout-minutes: 60
-      continue-on-error: false
+      timeout-minutes: 45
         
     - name: 上传APK文件
+      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: 每日关怀-debug.apk
+        name: 每日关怀-debug
         path: bin/*.apk
         
-    - name: 创建Release（如果是tag）
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
+    - name: 上传构建日志
+      if: failure()
+      uses: actions/upload-artifact@v4
       with:
-        files: bin/*.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: 构建日志
+        path: ~/.buildozer/android/platform/build-*/
