@@ -51,7 +51,7 @@ warn_on_root = 1
 # android.activity_class_name = org.kivy.android.PythonActivity
 
 # (str) The Android arch to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
-android.archs = arm64-v8a, armeabi-v7a
+android.archs = arm64-v8a
 
 # (int) Target Android API, should be as high as possible.
 android.api = 31
@@ -60,7 +60,7 @@ android.api = 31
 android.minapi = 21
 
 # (str) Android NDK version to use
-android.ndk = 25b
+android.ndk = 23c
 
 # (int) Android SDK version to use
 android.sdk = 31
