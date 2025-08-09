@@ -20,7 +20,7 @@ version = 1.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,kivymd,requests,pillow,setuptools
+requirements = python3,kivy,requests,pillow
 
 # (str) Presplash of the application
 #presplash.filename = %(source.dir)s/data/presplash.png
@@ -87,6 +87,12 @@ android.skip_update = False
 # the default, you will be shown the license when first running
 # buildozer.
 android.accept_sdk_license = True
+
+# (str) Android entry point, default is ok for Kivy-based app
+android.entrypoint = org.kivy.android.PythonActivity
+
+# (str) Full name including package path of the Java class that implements Android Activity
+android.activity_class_name = org.kivy.android.PythonActivity
 
 # (str) The Android package format to use. Valid options are 'aab' (Android App Bundle)
 # or 'apk' (Android Application Package).
